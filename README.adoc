@@ -1,0 +1,6 @@
+= Logging
+:toc: preamble
+
+== What is this?
+
+Python-like logging configuration for zap logger - mainly used for personal projects.
