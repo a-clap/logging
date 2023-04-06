@@ -4,13 +4,14 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
 type Logger struct {
-	l *zap.Logger
+	logger *zap.Logger
+	conf   *config
 }
 
 type Level = zapcore.Level
@@ -32,35 +33,56 @@ func GetRootLogger() *Logger {
 func GetLogger(name ...string) *Logger {
 	var loggerName string
 	// Return name as 'package/file'
-	if len(name) == 0 {
+	if len(name) == 0 || name[0] == "" {
 		_, f, _, _ := runtime.Caller(1)
+		f = strings.TrimSuffix(f, ".go")
 		s := strings.LastIndex(filepath.Dir(f), "/")
 		loggerName = f[s+1:]
+	} else {
+		loggerName = name[0]
 	}
 	return rootLogger.getLogger(loggerName)
 }
 
 func (l *Logger) Debug(msg string, fields ...Field) {
-	l.l.Debug(msg, fields...)
+	l.logger.Debug(msg, fields...)
 }
 
 func (l *Logger) Info(msg string, fields ...Field) {
-	l.l.Info(msg, fields...)
+	l.logger.Info(msg, fields...)
 }
 
 func (l *Logger) Warn(msg string, fields ...Field) {
-	l.l.Warn(msg, fields...)
+	l.logger.Warn(msg, fields...)
 }
 
 func (l *Logger) Error(msg string, fields ...Field) {
-	l.l.Error(msg, fields...)
+	l.logger.Error(msg, fields...)
 }
+
 func (l *Logger) DPanic(msg string, fields ...Field) {
-	l.l.DPanic(msg, fields...)
+	l.logger.DPanic(msg, fields...)
 }
+
 func (l *Logger) Panic(msg string, fields ...Field) {
-	l.l.Panic(msg, fields...)
+	l.logger.Panic(msg, fields...)
 }
+
 func (l *Logger) Fatal(msg string, fields ...Field) {
-	l.l.Fatal(msg, fields...)
+	l.logger.Fatal(msg, fields...)
+}
+
+func (l *Logger) Sync() {
+	l.logger.Sync()
+}
+
+func (l *Logger) AddConsoleHandler(e EncoderConfig, level Level) {
+	l.conf.addConsoleHandler(e, level)
+	l.logger = l.conf.build()
+
+	for _, child := range rootLogger.getChilds(l.conf.name) {
+		child.conf.addConsoleHandler(e, level)
+		child.logger = child.conf.build()
+	}
+
 }
