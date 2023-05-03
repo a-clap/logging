@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"fmt"
 	"io"
 	"path/filepath"
 	"runtime"
@@ -16,6 +17,7 @@ type Logger struct {
 }
 
 type Level = zapcore.Level
+type HandlerName = string
 
 const (
 	DebugLevel  Level = zap.DebugLevel  // -1, default level
@@ -25,6 +27,12 @@ const (
 	DPanicLevel Level = zap.DPanicLevel // 3, used in development log  PanicLevel logs a message, then panics
 	PanicLevel  Level = zap.PanicLevel  // 4
 	FatalLevel  Level = zap.FatalLevel  // 5  FatalLevel logs a message, then calls os.Exit(1).
+)
+
+const (
+	Console    HandlerName = "_console"
+	File       HandlerName = "_file"
+	RotateFile HandlerName = "_rotate_file"
 )
 
 func GetRootLogger() *Logger {
@@ -77,6 +85,21 @@ func (l *Logger) Sync() error {
 	return l.logger.Sync()
 }
 
+func (l *Logger) SetLevel(level Level) {
+	for _, c := range l.conf.cores {
+		c.level.SetLevel(level)
+	}
+}
+
+func (l *Logger) SetHandlerLevel(h HandlerName, level Level) error {
+	core, ok := l.conf.cores[h]
+	if !ok {
+		return fmt.Errorf("no such handler: %v", h)
+	}
+	core.level.SetLevel(level)
+	return nil
+}
+
 func (l *Logger) AddConsoleHandler(e EncoderConfig, level Level) {
 	l.conf.addConsoleHandler(e, level)
 	l.logger = l.conf.build()
@@ -84,12 +107,6 @@ func (l *Logger) AddConsoleHandler(e EncoderConfig, level Level) {
 	for _, child := range rootLogger.getChilds(l.conf.name) {
 		child.conf.addConsoleHandler(e, level)
 		child.logger = child.conf.build()
-	}
-}
-
-func (l *Logger) SetLevel(level Level) {
-	for _, c := range l.conf.cores {
-		c.level.SetLevel(level)
 	}
 }
 

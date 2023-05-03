@@ -46,11 +46,15 @@ func (c *config) addHandler(name string, encoder zapcore.Encoder, w io.Writer, l
 }
 
 func (c *config) addConsoleHandler(e EncoderConfig, level Level) {
-	c.addHandler("console", zapcore.NewConsoleEncoder(e), os.Stdout, level)
+	c.addHandler(Console, zapcore.NewConsoleEncoder(e), os.Stdout, level)
 }
 
 func (c *config) addFileHandler(w io.Writer, e EncoderConfig, level Level) {
-	c.addHandler("file", zapcore.NewJSONEncoder(e), w, level)
+	c.addHandler(File, zapcore.NewJSONEncoder(e), w, level)
+}
+
+func (c *config) addRotateFileHandler(w io.Writer, e EncoderConfig, level Level) {
+	c.addHandler(RotateFile, zapcore.NewJSONEncoder(e), w, level)
 }
 
 func (c *config) build() *zap.Logger {
