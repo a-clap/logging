@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	
+
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -80,17 +80,23 @@ func (l *Logger) Sync() error {
 func (l *Logger) AddConsoleHandler(e EncoderConfig, level Level) {
 	l.conf.addConsoleHandler(e, level)
 	l.logger = l.conf.build()
-	
+
 	for _, child := range rootLogger.getChilds(l.conf.name) {
 		child.conf.addConsoleHandler(e, level)
 		child.logger = child.conf.build()
 	}
 }
 
+func (l *Logger) SetLevel(level Level) {
+	for _, c := range l.conf.cores {
+		c.level.SetLevel(level)
+	}
+}
+
 func (l *Logger) AddFileHandler(e EncoderConfig, level Level, w io.Writer) {
 	l.conf.addFileHandler(w, e, level)
 	l.logger = l.conf.build()
-	
+
 	for _, child := range rootLogger.getChilds(l.conf.name) {
 		child.conf.addFileHandler(w, e, level)
 		child.logger = child.conf.build()

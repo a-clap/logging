@@ -11,7 +11,7 @@ import (
 type core struct {
 	enc    zapcore.Encoder
 	writer io.Writer
-	level  Level
+	level  zap.AtomicLevel
 }
 
 type config struct {
@@ -41,7 +41,8 @@ func inheritConfig(name string, conf *config) *config {
 }
 
 func (c *config) addHandler(name string, encoder zapcore.Encoder, w io.Writer, level Level) {
-	c.cores[name] = core{enc: encoder, writer: w, level: level}
+	c.cores[name] = core{enc: encoder, writer: w, level: zap.NewAtomicLevel()}
+	c.cores[name].level.SetLevel(level)
 }
 
 func (c *config) addConsoleHandler(e EncoderConfig, level Level) {
@@ -54,8 +55,8 @@ func (c *config) addFileHandler(w io.Writer, e EncoderConfig, level Level) {
 
 func (c *config) build() *zap.Logger {
 	cores := make([]zapcore.Core, 0, len(c.cores))
-	for _, core := range c.cores {
-		cores = append(cores, zapcore.NewCore(core.enc, zapcore.AddSync(core.writer), core.level))
+	for _, c := range c.cores {
+		cores = append(cores, zapcore.NewCore(c.enc, zapcore.AddSync(c.writer), c.level))
 	}
 	tee := zapcore.NewTee(cores...)
 	return zap.New(tee).WithOptions(zap.AddCallerSkip(1), zap.AddCaller())
